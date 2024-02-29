@@ -53,7 +53,7 @@ class Neuron{
 };
 
 double Neuron::eta=0.05;
-double Neuron::alpha=0.1;
+double Neuron::alpha=0.15;
 
 Neuron::Neuron(unsigned num_output, unsigned index){
     for (unsigned connection=0;connection<num_output;connection++){
@@ -268,40 +268,4 @@ void TrainNet::training(TrainingData &data){
             itr++;
         }
     }
-}
-
-
-int main(){
-    
-    // eg {3, 2, 1}
-    // vector<unsigned> topology;
-    // topology.push_back(3);
-    // topology.push_back(2);
-    // topology.push_back(1);
-    // Network net(topology);
-
-    // vector<double> input;
-    // net.forwardpropagation(input);
-
-    // vector<double> target;
-    // net.backpropagation(target);
-
-    // vector<double> results;
-    // net.getResult(results);
-
-    TrainingData data;
-    data.loadData("dataset\\trainingdata.csv");
-
-    vector<unsigned> topology;
-    topology.push_back(data.feature_size);
-    topology.push_back(8);
-    topology.push_back(8);
-    topology.push_back(8);
-    topology.push_back(data.output_vec[0].size());
-    cout<<data.output_vec[0].size()<<endl;
-    Network net(topology);
-    cout<<"Netowrk ready"<<endl;
-
-    TrainNet train(2000, 7, &net, data);
-    train.training(data);
 }
