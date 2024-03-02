@@ -52,8 +52,8 @@ class Neuron{
         vector<Connection> neuron_outputweight;
 };
 
-double Neuron::eta=0.05;
 double Neuron::alpha=0.15;
+double Neuron::eta=0.5;
 
 Neuron::Neuron(unsigned num_output, unsigned index){
     for (unsigned connection=0;connection<num_output;connection++){
@@ -104,7 +104,7 @@ void Neuron::updateInputWeights(Layer &prev_layer){
     for(int neuron=0;neuron<prev_layer.size();neuron++){
         Neuron &curr_neuron=prev_layer[neuron];
         double oldDeltaWeight = curr_neuron.neuron_outputweight[neuron_index].delta_weight;
-        double newDeltaWeight=eta*curr_neuron.get_neuron_output()*gradient+alpha*oldDeltaWeight;
+        double newDeltaWeight=alpha*curr_neuron.get_neuron_output()*gradient;//+eta*oldDeltaWeight;
         curr_neuron.neuron_outputweight[neuron_index].delta_weight=newDeltaWeight;
         curr_neuron.neuron_outputweight[neuron_index].weight+=newDeltaWeight;
     }

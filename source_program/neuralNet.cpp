@@ -199,7 +199,7 @@ void Neuron::updateInputWeights(Layer &prev_layer){
     for(int neuron=0;neuron<prev_layer.size();neuron++){
         Neuron &curr_neuron=prev_layer[neuron];
         double oldDeltaWeight = curr_neuron.neuron_outputweight[neuron_index].delta_weight;
-        double newDeltaWeight=eta*curr_neuron.get_neuron_output()*gradient+alpha*oldDeltaWeight;
+        double newDeltaWeight=alpha*curr_neuron.get_neuron_output()*gradient;//+eta*oldDeltaWeight
         curr_neuron.neuron_outputweight[neuron_index].delta_weight=newDeltaWeight;
         curr_neuron.neuron_outputweight[neuron_index].weight+=newDeltaWeight;
     }
@@ -385,7 +385,7 @@ int main(){
     // net.getResult(results);
 
     TrainingData data;
-    data.loadData("dataset\\trainingdata.csv");
+    data.loadData("..\\dataset\\trainingdata.csv");
 
     vector<unsigned> topology;
     topology.push_back(data.feature_size);
