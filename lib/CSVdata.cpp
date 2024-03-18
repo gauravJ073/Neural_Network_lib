@@ -7,7 +7,7 @@
 using namespace std;
 //-------------------------------------------training-data----------------------------------------
 
-class TrainingData{
+class CSVdata{
     public:
         int input_size;
         int feature_size;
@@ -19,10 +19,18 @@ class TrainingData{
         bool isEof(){return training_file.eof();}
         void loadData(string filename);
         void calculateOutput();
+        CSVdata();
+        CSVdata(CSVdata &data);
     private:
         ifstream training_file;
 };
-void TrainingData::calculateOutput(){
+CSVdata::CSVdata(){;}
+CSVdata::CSVdata(CSVdata &data){
+    for(int i=0;i<data.target_classes.size();i++){
+        target_classes.push_back(data.target_classes[i]);
+    }
+}
+void CSVdata::calculateOutput(){
     for(int i=0;i<input_size;i++){
         vector<double> temp;
         for(int j=0;j<target_classes.size();j++){
@@ -36,12 +44,13 @@ void TrainingData::calculateOutput(){
         output_vec.push_back(temp);
     }
 }
-void TrainingData::loadData(string filename){
+void CSVdata::loadData(string filename){
     training_file.open(filename.c_str());
     string line;
     int i=0;
     for(i=0;!training_file.eof();i++){
         getline(training_file, line);
+        if(line==""){break;}
         int start=0, end=0;
         vector<double> row;
         while(end<(line.size())){

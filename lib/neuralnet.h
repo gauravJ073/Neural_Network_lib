@@ -2,7 +2,7 @@
 #define neuralnet
 
 #include <vector>
-#include "trainingData.h"
+#include "csvdata.h"
 
 
 using namespace std;
@@ -13,7 +13,7 @@ typedef vector<Neuron> Layer;
 class Connection{
     public:
         double weight;
-        double delta_weight;//delta weight
+        double delta_weight;
         Connection();
     private:
         static double randomWeight();
@@ -24,9 +24,10 @@ class Connection{
 // neuron definition is after Layer because we need Layer in its definition
 class Neuron{
     public:
+        public:
         Neuron(unsigned num_output, unsigned index);
-        void set_neuron_output(double input){ neuron_output = input; }
-        double get_neuron_output() const { return neuron_output ; }
+        void set_neuron_output(double input);
+        double get_neuron_output() const;
         void calculateOutput(const Layer &prevLayer);
         void calculateOutputGradient(double target_val);
         void calculateHiddenGradient(const Layer &next_layer);
@@ -51,27 +52,48 @@ double Neuron::alpha=0.15;
 class Network{
     public:
         Network(vector<unsigned> &topology);
+        Network(Network &n);
         void forwardpropagation(const vector<double> &input);
         void backpropagation(const vector<double> &target);
         void getResult(vector<double> &result) const;
+        vector<unsigned> gettopology(){return tp;}
 
     private: 
         vector<Layer> layers;
+        vector<unsigned> tp;
         double error;
         double recent_average_error;
         double recent_average_smoothing_factor;
 };
 //-------------------------------------------Train Network-----------------------------------------
-class TrainNet{
+class NNModel{
+    public:
+        NNModel(){};
+        NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapath);
+        NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapath, string testdatapath);
+        void train();
+        int predict(vector<double>& input);
+        vector<int> test(string testdatapath);
+        vector<int> predict(vector<vector<double> >& input);
+        void calcConfusionMatrix(vector<int> predictedclass);
+        void printConfusionMatrix();
+        double getAccuracy(vector<int> actualclass,vector<int> predictedclass);
+        int getIdx(vector<double> result);
     private:
         int epoch;
         int batch_size;
         int iteration;
+        int output_classes;
+        vector<string> output_class_labels;
+        CSVdata traindata;
+        CSVdata *testdata;
         Network *net;
-    public:
-        TrainNet(){};
-        TrainNet(int ep, int b_s, Network *model, TrainingData &data);
-        void training(TrainingData &data);
+        struct evaluation{
+            vector<vector<int> > confusion_matrix;
+            double tp, tn, fp, fn;
+        }eval;
+
+        
 };
 
 #endif

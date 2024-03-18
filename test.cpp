@@ -1,24 +1,31 @@
 #include <iostream>
 #include <vector>
 
-#include "lib/trainingdata.h"
+#include "lib/CSVdata.h"
 #include "lib/neuralnet.h"
 
 int main(){
-    TrainingData dataset;
-    dataset.loadData("dataset\\trainingdata.csv");
-    std::cout<<"all ok"<<std::endl<<dataset.input_size;
+    CSVdata data;
+    // data.loadData("..\\dataset\\mnist_train.csv");
 
     vector<unsigned> topology;
-    topology.push_back(dataset.feature_size);
-    topology.push_back(7);
-    topology.push_back(7);
-    topology.push_back(7);
-    topology.push_back(dataset.output_vec[0].size());
-    cout<<dataset.output_vec[0].size()<<endl;
-    Network net(topology);
-    cout<<"Netowrk ready"<<endl;
+    topology.push_back(4);
+    // topology.push_back(392);
+    // topology.push_back(196);
+    // topology.push_back(98);
+    topology.push_back(8);
+    topology.push_back(8);
+    topology.push_back(3);
 
-    TrainNet train(6000, 7, &net, dataset);
-    train.training(dataset);
+    NNModel model(1000, 50, topology, ".\\dataset\\norm_iris.csv");
+    model.train();
+    // vector<int> actual;
+    // for(int i = 0; i<data.output_vec.size();i++){
+    //     actual.push_back(model.getIdx(data.output_vec[i]));
+    //     cout<<(data.output_vec[i][i]);
+
+    // }
+
+    model.calcConfusionMatrix(model.test(".\\dataset\\norm_iris_test.csv"));
+    model.printConfusionMatrix();
 }

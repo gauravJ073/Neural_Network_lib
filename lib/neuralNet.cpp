@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <sstream>
 #include <cmath>
-#include "trainingData.h"
-
+#include "CSVdata.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -22,7 +22,7 @@ class Connection{
         double delta_weight;//delta weight
         Connection();
     private:
-        static double randomWeight(){return rand()/double(RAND_MAX);}
+        static double randomWeight(){return 2*(rand()/double(RAND_MAX)) -1;}
 };
 Connection::Connection(){
     weight=randomWeight();
@@ -116,32 +116,49 @@ void Neuron::updateInputWeights(Layer &prev_layer){
 class Network{
     public:
         Network(vector<unsigned> &topology);
+        Network(Network &n);
         void forwardpropagation(const vector<double> &input);
         void backpropagation(const vector<double> &target);
         void getResult(vector<double> &result) const;
+        vector<unsigned> gettopology(){return tp;}
 
     private: 
         vector<Layer> layers;
+        vector<unsigned> tp;
         double error;
         double recent_average_error;
         double recent_average_smoothing_factor;
 };
 
 Network::Network(vector<unsigned> &topology){
+    tp=topology;
     unsigned num_layers=topology.size();
     for (unsigned layer=0;layer<num_layers;layer++){
         layers.push_back(Layer());
-        unsigned num_output= layer==num_layers-1?0:topology[layer+1];
+        unsigned num_output= layer==num_layers-1?0:tp[layer+1];
 
         //have a bias neuron
-        for(unsigned neuron=0;neuron<=topology[layer];neuron++){
+        for(unsigned neuron=0;neuron<=tp[layer];neuron++){
             layers.back().push_back(Neuron(num_output, neuron));
             // cout<<"Neuron create....neuron_num: "<<neuron<<",";
+        }
+        // cout<<endl;
+    }
+}
+Network::Network(Network &n){
+    tp=n.tp;
+    unsigned num_layers=tp.size();
+    for (unsigned layer=0;layer<num_layers;layer++){
+        layers.push_back(Layer());
+        unsigned num_output= layer==num_layers-1?0:tp[layer+1];
+
+        //have a bias neuron
+        for(unsigned neuron=0;neuron<=tp[layer];neuron++){
+            layers.back().push_back(Neuron(num_output, neuron));
         }
         cout<<endl;
     }
 }
-
 void Network::forwardpropagation(const vector<double> &input){
     assert(input.size()==(layers[0].size()-1));//ensuring size of input is same as size of input layer
 
@@ -207,65 +224,147 @@ void Network::getResult(vector<double> &result) const {
 }
 
 //-------------------------------------------Train Network-----------------------------------------
-class TrainNet{
+class NNModel{
+    public:
+        NNModel(){};
+        NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapath);
+        NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapath, string testdatapath);
+        void train();
+        int predict(vector<double>& input);
+        vector<int> test(string testdatapath);
+        vector<int> predict(vector<vector<double> >& input);
+        void calcConfusionMatrix(vector<int> predictedclass);
+        void printConfusionMatrix();
+        double getAccuracy(vector<int> actualclass,vector<int> predictedclass);
+        int getIdx(vector<double> result);
     private:
         int epoch;
         int batch_size;
         int iteration;
+        int output_classes;
+        vector<string> output_class_labels;
+        CSVdata traindata;
+        CSVdata *testdata;
         Network *net;
-    public:
-        TrainNet(){};
-        TrainNet(int ep, int b_s, Network *model, TrainingData &data);
-        void training(TrainingData &data);
+        struct evaluation{
+            vector<vector<int> > confusion_matrix;
+            double tp, tn, fp, fn;
+        }eval;
 
         
 };
-TrainNet::TrainNet(int ep, int b_s, Network *model, TrainingData &data){
+NNModel::NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapath){
     epoch=ep;
     batch_size=b_s;
-    net=model;
-    assert(batch_size<=data.input_size);
-    iteration = data.input_size/float(batch_size);
+    Network n(topology);
+    net=new Network(n);
+
+    traindata.loadData(traindatapath);
+    testdata=new CSVdata(traindata);
+    assert(batch_size<=traindata.input_size);
+    iteration = traindata.input_size/float(batch_size);
+
+    for(int i =0;i<traindata.target_classes.size();i++){
+        output_class_labels.push_back(traindata.target_classes[i]);
+    }
+    output_classes=traindata.output_vec[0].size();
+
+    for( int i=0;i<output_classes;i++){
+        vector<int> temp;
+        for( int j=0;j<output_classes;j++){
+            temp.push_back(0);
+        }
+        eval.confusion_matrix.push_back(temp);
+    }
 }
-void TrainNet::training(TrainingData &data){
+
+int NNModel::getIdx(vector<double> output_vec){
+    int maxidx=0;
+    for(int j=0;j<output_vec.size();j++){
+        if(output_vec[j]>output_vec[maxidx]){
+            maxidx=j;
+        }
+    }
+    return maxidx;
+}
+void NNModel::train(){
     while(epoch--){
         int itr=0;
         while(itr<iteration){
             for(int i=itr*batch_size;i<(itr+1)*batch_size;i++){
                 vector<double> input, target, result;
-                input=data.Data[i];
-                for(int j=0;j<input.size();j++){
-                    cout<<"input ="<<input[j]<<", ";
-                }
+                input=traindata.Data[i];
                 net->forwardpropagation(input);
                 net->getResult(result);
-                int maxidx=0;
-                for(int j=0;j<result.size();j++){
-                    if(result[j]>result[maxidx]){
-                        maxidx=j;
-                    }
-                }
-                cout<<endl;
-                for(int j=0;j<result.size();j++){
-                    cout<<"result ["<<j<<"]="<<result[j]<<endl;
-                }
-                // cout<<"result ="<<result[1]<<endl;
-                cout<<"Output: "<<data.target_classes[maxidx]<<endl;
-                maxidx=0;
-                for(int j=0;j<data.output_vec[i].size();j++){
-                    if(data.output_vec[i][j]>data.output_vec[i][maxidx]){
-                        maxidx=j;
-                    }
-                    // cout<<"-"<<data.output_vec[i][j]<<" ,";
-                }
-                target=data.output_vec[i];
-                // cout<<"Index: "<<maxidx<<endl;
-                cout<<"Actual: "<<data.target_classes[maxidx]<<endl;
+                int maxidx=getIdx(result);
+                
+                maxidx=getIdx(traindata.output_vec[i]);
+                target=traindata.output_vec[i];
                 net->backpropagation(target);
-                cout<<"<------------------------>"<<endl;
 
             }
             itr++;
         }
+        cout<<"Epochs left: "<<epoch<<endl;
     }
+}
+void NNModel::calcConfusionMatrix(vector<int> predictedclass){
+    vector<int> actualclass;
+    for(int i = 0; i<testdata->output_vec.size();i++){
+        actualclass.push_back(getIdx(testdata->output_vec[i]));
+        // cout<<(traindata.output_vec[i][i]);
+    }
+    // cout<<endl;
+
+    // cout<<actualclass.size()<<" "<<predictedclass.size();
+    assert(actualclass.size()==predictedclass.size());
+    for(int i=0;i<actualclass.size();i++){
+        eval.confusion_matrix[actualclass[i]][predictedclass[i]]+=1;
+    }
+}
+
+void NNModel::printConfusionMatrix(){
+    cout<<endl<<"act\\pred";
+    for(int i=0;i<output_classes;i++){
+        cout<<setw(8)<<"["<<i<<"]";
+    }
+    cout<<endl;
+    for(int i=0;i<output_classes;i++){
+        cout<<"["<<i<<"]    ";
+        for( int j=0;j<output_classes;j++){
+            cout<<setw(10)<<eval.confusion_matrix[i][j]<<"";
+        }
+        cout<<endl;
+    }
+    cout<<"Labels: "<<endl;
+    for(int i=0;i<output_classes;i++){
+        cout<<"["<<i<<"]    "<<output_class_labels[i]<<endl;
+    }
+
+}
+
+int NNModel::predict(vector<double>& input){
+    assert(input.size()==net->gettopology()[0]);
+    net->forwardpropagation(input);
+    vector<double> result;
+    net->getResult(result);
+    return getIdx(result);
+}
+
+vector<int> NNModel::test(string testdatapath){
+    
+    testdata->loadData(testdatapath);
+    vector<int> pred=predict(testdata->Data);
+    return pred;
+}
+
+vector<int> NNModel::predict(vector<vector<double> >& input){
+    vector<int> pred;
+    
+    for(int i=0;i<input.size();i++){
+        pred.push_back(predict(input[i]));
+        // cout<<"pred idx: "<<pred.back()<<endl;
+        // cout<<"pred label: "<<output_class_labels[pred.back()]<<endl;
+    }
+    return pred;
 }
