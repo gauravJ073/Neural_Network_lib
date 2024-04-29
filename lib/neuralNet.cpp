@@ -58,14 +58,12 @@ double Neuron::eta=0.5;
 Neuron::Neuron(unsigned num_output, unsigned index){
     for (unsigned connection=0;connection<num_output;connection++){
         neuron_outputweight.push_back(Connection());
-        // cout<<" Value ["<<connection<<"]: "<<neuron_outputweight.back().weight<<".";
     }
 
     neuron_index=index;
 }
 
 void Neuron::calculateOutput(const Layer &prevLayer){
-    // activation a = g(sum(weight_prevlayer*output_prevlayer))
 
     double sum=0.0;
     for(unsigned prev_neuron=0;prev_neuron<prevLayer.size();prev_neuron++){
@@ -75,26 +73,18 @@ void Neuron::calculateOutput(const Layer &prevLayer){
 }
 
 void Neuron::calculateOutputGradient(double target_val){
-    // cout<<"output gradient"<<endl;
     double delta=target_val-neuron_output;
-    // cout<<"delta: "<<delta<<endl;
-    // cout<<"activation_function_derivative(neuron_output): "<<activation_function_derivative(neuron_output)<<endl;
     gradient=delta*Neuron::activation_function_derivative(neuron_output);
 }
 
 void Neuron::calculateHiddenGradient(const Layer &next_layer){
-    // cout<<"Hidden gradient"<<endl;
     double derivative_of_weight = sumDerivativeOfWeight(next_layer);
-    // cout<<"derivative_of_weight: "<<derivative_of_weight<<endl;
-    // cout<<"activation_function_derivative(neuron_output): "<<activation_function_derivative(neuron_output)<<endl;
     gradient=derivative_of_weight*Neuron::activation_function_derivative(neuron_output);
 }
 
 double Neuron::sumDerivativeOfWeight(const Layer &next_layer){
     double sum=0.0;
-    // cout<<"Summing"<<endl;
     for(int neuron=0;neuron<next_layer.size()-1;neuron++){
-        // cout<<"neuron_outputweight[neuron].weight"<<neuron_outputweight[neuron].weight<<", ";
         sum+=neuron_outputweight[neuron].weight*next_layer[neuron].gradient;
     }
     return sum;
@@ -140,9 +130,7 @@ Network::Network(vector<unsigned> &topology){
         //have a bias neuron
         for(unsigned neuron=0;neuron<=tp[layer];neuron++){
             layers.back().push_back(Neuron(num_output, neuron));
-            // cout<<"Neuron create....neuron_num: "<<neuron<<",";
         }
-        // cout<<endl;
     }
 }
 Network::Network(Network &n){
@@ -235,7 +223,7 @@ class NNModel{
         vector<int> predict(vector<vector<double> >& input);
         void calcConfusionMatrix(vector<int> predictedclass);
         void printConfusionMatrix();
-        double getAccuracy(vector<int> actualclass,vector<int> predictedclass);
+        void printAccuracy();
         int getIdx(vector<double> result);
     private:
         int epoch;
@@ -248,7 +236,7 @@ class NNModel{
         Network *net;
         struct evaluation{
             vector<vector<int> > confusion_matrix;
-            double tp, tn, fp, fn;
+            vector<double> tp, tn, fp, fn;
         }eval;
 
         
@@ -274,6 +262,10 @@ NNModel::NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapat
         for( int j=0;j<output_classes;j++){
             temp.push_back(0);
         }
+        eval.tp.push_back(0);
+        eval.fp.push_back(0);
+        eval.tn.push_back(0);   
+        eval.fn.push_back(0);
         eval.confusion_matrix.push_back(temp);
     }
 }
@@ -312,14 +304,40 @@ void NNModel::calcConfusionMatrix(vector<int> predictedclass){
     vector<int> actualclass;
     for(int i = 0; i<testdata->output_vec.size();i++){
         actualclass.push_back(getIdx(testdata->output_vec[i]));
-        // cout<<(traindata.output_vec[i][i]);
     }
-    // cout<<endl;
-
-    // cout<<actualclass.size()<<" "<<predictedclass.size();
     assert(actualclass.size()==predictedclass.size());
     for(int i=0;i<actualclass.size();i++){
         eval.confusion_matrix[actualclass[i]][predictedclass[i]]+=1;
+    }
+    
+    for(int i=0;i<eval.tp.size();i++){
+        eval.tp[i]=eval.confusion_matrix[i][i];
+    }
+    for(int i=0;i<eval.fp.size();i++){
+        double fp=0;
+        for(int j=0;j<eval.fp.size();j++){
+            fp+=eval.confusion_matrix[j][i];
+        }
+        fp=fp-eval.tp[i];
+        eval.fp[i]=fp;
+    }
+    for(int i=0;i<eval.fn.size();i++){
+        double fn=0;
+        for(int j=0;j<eval.fn.size();j++){
+            fn+=eval.confusion_matrix[i][j];
+        }
+        fn=fn-eval.tp[i];
+        eval.fn[i]=fn;
+    }
+    for(int i=0;i<eval.tn.size();i++){
+        double tn=0;
+        for(int j=0;j<eval.tn.size();j++){
+            for(int k=0;k<eval.tn.size();k++){
+                tn+=eval.confusion_matrix[j][k];
+            }
+        }
+        tn=tn-eval.tp[i]-eval.fp[i]-eval.fn[i];
+        eval.tn[i]=tn;
     }
 }
 
@@ -341,6 +359,18 @@ void NNModel::printConfusionMatrix(){
         cout<<"["<<i<<"]    "<<output_class_labels[i]<<endl;
     }
 
+}
+
+void NNModel::printAccuracy(){
+    cout<<"Accuracy: "<<endl;
+    double numerator=0, denomenator=0;
+    for(int i =0;i<output_classes;i++){
+        numerator+=eval.tp[i]+eval.tn[i];
+    }
+    for(int i =0;i<output_classes;i++){
+        denomenator+=eval.tp[i]+eval.tn[i]+eval.fp[i]+eval.fn[i];
+    }
+    cout<<numerator/denomenator<<endl;
 }
 
 int NNModel::predict(vector<double>& input){

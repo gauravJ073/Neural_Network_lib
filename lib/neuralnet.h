@@ -77,7 +77,7 @@ class NNModel{
         vector<int> predict(vector<vector<double> >& input);
         void calcConfusionMatrix(vector<int> predictedclass);
         void printConfusionMatrix();
-        double getAccuracy(vector<int> actualclass,vector<int> predictedclass);
+        void printAccuracy();
         int getIdx(vector<double> result);
     private:
         int epoch;
@@ -90,7 +90,7 @@ class NNModel{
         Network *net;
         struct evaluation{
             vector<vector<int> > confusion_matrix;
-            double tp, tn, fp, fn;
+            vector<double> tp, tn, fp, fn;
         }eval;
 
         

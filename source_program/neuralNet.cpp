@@ -351,7 +351,7 @@ class NNModel{
         Network *net;
         struct evaluation{
             vector<vector<int> > confusion_matrix;
-            double tp, tn, fp, fn;
+            vector<double> tp, tn, fp, fn;
         }eval;
         
     public:
@@ -364,7 +364,7 @@ class NNModel{
         vector<int> predict(vector<vector<double> >& input);
         void calcConfusionMatrix(vector<int> predictedclass);
         void printConfusionMatrix();
-        double getAccuracy(vector<int> actualclass,vector<int> predictedclass);
+        void printAccuracy();
         int getIdx(vector<double> result);
 
         
@@ -393,6 +393,10 @@ NNModel::NNModel(int ep, int b_s, vector<unsigned> topology, string traindatapat
         for( int j=0;j<output_classes;j++){
             temp.push_back(0);
         }
+        eval.tp.push_back(0);
+        eval.fp.push_back(0);
+        eval.tn.push_back(0);   
+        eval.fn.push_back(0);
         eval.confusion_matrix.push_back(temp);
     }
 }
@@ -461,6 +465,36 @@ void NNModel::calcConfusionMatrix(vector<int> predictedclass){
     for(int i=0;i<actualclass.size();i++){
         eval.confusion_matrix[actualclass[i]][predictedclass[i]]+=1;
     }
+
+    for(int i=0;i<eval.tp.size();i++){
+        eval.tp[i]=eval.confusion_matrix[i][i];
+    }
+    for(int i=0;i<eval.fp.size();i++){
+        double fp=0;
+        for(int j=0;j<eval.fp.size();j++){
+            fp+=eval.confusion_matrix[j][i];
+        }
+        fp=fp-eval.tp[i];
+        eval.fp[i]=fp;
+    }
+    for(int i=0;i<eval.fn.size();i++){
+        double fn=0;
+        for(int j=0;j<eval.fn.size();j++){
+            fn+=eval.confusion_matrix[i][j];
+        }
+        fn=fn-eval.tp[i];
+        eval.fn[i]=fn;
+    }
+    for(int i=0;i<eval.tn.size();i++){
+        double tn=0;
+        for(int j=0;j<eval.tn.size();j++){
+            for(int k=0;k<eval.tn.size();k++){
+                tn+=eval.confusion_matrix[j][k];
+            }
+        }
+        tn=tn-eval.tp[i]-eval.fp[i]-eval.fn[i];
+        eval.tn[i]=tn;
+    }
 }
 
 void NNModel::printConfusionMatrix(){
@@ -481,6 +515,21 @@ void NNModel::printConfusionMatrix(){
         cout<<"["<<i<<"]    "<<output_class_labels[i]<<endl;
     }
 
+}
+void NNModel::printAccuracy(){
+    cout<<"Accuracy: "<<endl;
+    // for(int i=0;i<output_classes;i++){
+    //     cout<<"["<<i<<"]    "<<output_class_labels[i]<<" : "<<eval.tp[i]<<" "<<eval.fp[i]<<" "<<eval.fn[i]<<" "<<eval.tn[i]<<endl;
+    // }
+    double numerator=0, denomenator=0;
+    for(int i =0;i<output_classes;i++){
+        numerator+=eval.tp[i]+eval.tn[i];
+    }
+    for(int i =0;i<output_classes;i++){
+        denomenator+=eval.tp[i]+eval.tn[i]+eval.fp[i]+eval.fn[i];
+    }
+    cout<<numerator/denomenator<<endl;
+    // cout<<(eval.tp[1]+eval.tn[1])/(eval.tp[1]+eval.tn[1]+eval.fp[1]+eval.fn[1])<<endl;
 }
 
 int NNModel::predict(vector<double>& input){
@@ -532,15 +581,15 @@ int main(){
     // data.loadData("..\\dataset\\mnist_train.csv");
 
     vector<unsigned> topology;
-    topology.push_back(4);
+    topology.push_back(32);
     // topology.push_back(392);
     // topology.push_back(196);
     // topology.push_back(98);
+    topology.push_back(16);
     topology.push_back(8);
-    topology.push_back(8);
-    topology.push_back(3);
+    topology.push_back(2);
 
-    NNModel model(1000, 50, topology, "..\\dataset\\norm_iris.csv");
+    NNModel model(500, 50, topology, "..\\dataset\\ionosphere_train.csv");
     model.train();
     // vector<int> actual;
     // for(int i = 0; i<data.output_vec.size();i++){
@@ -549,6 +598,7 @@ int main(){
 
     // }
 
-    model.calcConfusionMatrix(model.test("..\\dataset\\norm_iris_test.csv"));
+    model.calcConfusionMatrix(model.test("..\\dataset\\ionosphere_test.csv"));
     model.printConfusionMatrix();
+    model.printAccuracy();
 }
