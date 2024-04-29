@@ -144,7 +144,6 @@ Network::Network(Network &n){
         for(unsigned neuron=0;neuron<=tp[layer];neuron++){
             layers.back().push_back(Neuron(num_output, neuron));
         }
-        cout<<endl;
     }
 }
 void Network::forwardpropagation(const vector<double> &input){
@@ -187,7 +186,6 @@ void Network::backpropagation(const vector<double> &target){
         Layer &next_hidden_layer=layers[layer+1];
 
         for(int neuron=0;neuron<hidden_layer.size();neuron++){
-            // cout<<"-------layer["<<layer<<"]-------"<<endl;
             hidden_layer[neuron].calculateHiddenGradient(next_hidden_layer);
         }
     }
@@ -204,9 +202,7 @@ void Network::backpropagation(const vector<double> &target){
 
 void Network::getResult(vector<double> &result) const {
     result.clear();
-    // cout<<"getresult";
     for(int neuron=0;neuron<layers.back().size()-1;neuron++){
-        // cout<<layers.back()[neuron].get_neuron_output()<<endl;
         result.push_back(layers.back()[neuron].get_neuron_output());
     }
 }
@@ -393,8 +389,6 @@ vector<int> NNModel::predict(vector<vector<double> >& input){
     
     for(int i=0;i<input.size();i++){
         pred.push_back(predict(input[i]));
-        // cout<<"pred idx: "<<pred.back()<<endl;
-        // cout<<"pred label: "<<output_class_labels[pred.back()]<<endl;
     }
     return pred;
 }
